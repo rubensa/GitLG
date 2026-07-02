@@ -155,14 +155,20 @@ export default defineConfig([
 		rules: type_checked_rules_as_warn,
 	},
 	{
-		// Type-aware @typescript-eslint rules can't run on .vue files at all: eslint-plugin-vue
-		// uses vue-eslint-parser, which doesn't forward type information to the TS parser, so
-		// those rules crash (not merely error) regardless of severity. Turn them fully off for
-		// .vue files. Type correctness of .vue files is still enforced by `npm run type-check`
-		// (vue-tsc). Must come last so it overrides the warn-downgrade above.
+		// eslint-plugin-vue sets vue-eslint-parser for .vue files, which by default does
+		// not forward type information to @typescript-eslint — so type-aware rules would
+		// crash. Point vue-eslint-parser's inner parser at the TS parser and enable the
+		// project service so <script> blocks get type info and those rules can run.
+		// (Their many pre-existing violations surface as warnings via the downgrade above.)
 		// See https://typescript-eslint.io/troubleshooting/typed-linting
 		files: ['**/*.vue'],
-		...ts_eslint.configs.disableTypeChecked,
+		languageOptions: {
+			parserOptions: {
+				parser: ts_eslint.parser,
+				projectService: true,
+				extraFileExtensions: ['.vue'],
+			},
+		},
 	},
 	{
 		// vite.config.mjs isn't part of the tsconfig project, so the type-aware parser
